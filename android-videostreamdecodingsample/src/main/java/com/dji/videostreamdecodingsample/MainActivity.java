@@ -64,6 +64,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     protected DJICamera.CameraReceivedVideoDataCallback mReceivedVideoDataCallBack = null;
     protected DJILBAirLink.DJIOnReceivedVideoCallback mOnReceivedVideoCallback = null;
 
+    private static boolean firstGetBuffer = true;
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -213,6 +215,10 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                 } else if (mCodecManager != null) {
                     mCodecManager.sendDataToDecoder(videoBuffer, size);
                 }
+                for (int index = 0; firstGetBuffer && index < 10; index++){
+                    Log.e(TAG, String.format("0x%20x", videoBuffer[index]));
+                }
+                firstGetBuffer = false;
             }
         };
         mOnReceivedVideoCallback = new DJILBAirLink.DJIOnReceivedVideoCallback() {

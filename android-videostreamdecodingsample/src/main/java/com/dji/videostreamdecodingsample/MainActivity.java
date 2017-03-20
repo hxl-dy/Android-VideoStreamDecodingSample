@@ -219,6 +219,21 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                     Log.e(TAG, String.format("0x%20x", videoBuffer[index]));
                 }
                 firstGetBuffer = false;
+
+                File sdCard = Environment.getExternalStorageDirectory();
+                File dir = new File (sdCard.getAbsolutePath() + "/dji");
+                dir.mkdirs();
+                File file = new File(dir, "filename");
+
+                try {
+                    FileOutputStream f = new FileOutputStream(file, true);
+                    f.write(videoBuffer);
+                    Log.w(TAG, "write chunk finished: " + size);
+                }catch (IOException ioExp){
+
+                }
+
+
             }
         };
         mOnReceivedVideoCallback = new DJILBAirLink.DJIOnReceivedVideoCallback() {

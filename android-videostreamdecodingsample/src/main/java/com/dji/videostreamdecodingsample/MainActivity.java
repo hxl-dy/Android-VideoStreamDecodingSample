@@ -6,6 +6,8 @@ import android.graphics.ImageFormat;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.graphics.YuvImage;
+import android.media.MediaCodecInfo;
+import android.media.MediaFormat;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
@@ -21,6 +23,7 @@ import android.view.TextureView;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.media.MediaCodec;
 
 import com.dji.videostreamdecodingsample.media.DJIVideoStreamDecoder;
 
@@ -34,10 +37,25 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import dji.sdk.base.DJIBaseProduct;
+
+import net.ossrs.sea.SrsHttpFlv;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.security.cert.X509Certificate;
 
 public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuvDataListener {
     private static final String TAG = MainActivity.class.getSimpleName();
@@ -65,6 +83,64 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     protected DJILBAirLink.DJIOnReceivedVideoCallback mOnReceivedVideoCallback = null;
 
     private static boolean firstGetBuffer = true;
+    private String flv_url = "http://192.168.5.4:8936/android/dji.flv";
+    // the bitrate in kbps.
+    private int vbitrate_kbps = 1200;
+    private final static int VFPS = 25;
+    private final static int VGOP = 5;
+    private final static int VWIDTH = 1280;
+    private final static int VHEIGHT = 720;
+    private long presentationTimeUs;
+    private SrsHttpFlv muxer;
+    private int vtrack;
+    private int vcolor = MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible;
+    private MediaCodec vencoder;
+    private MediaCodec.BufferInfo vebi;
+
+    static {
+        disableSslVerification();
+    }
+
+    private static void disableSslVerification() {
+        try
+        {
+            // Create a trust manager that does not validate certificate chains
+            TrustManager[] trustAllCerts = new TrustManager[] {new X509TrustManager() {
+                @Override
+                public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
+
+                }
+
+                @Override
+                public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
+
+                }
+
+                public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                    return null;
+                }
+            }};
+
+            // Install the all-trusting trust manager
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCerts, new java.security.SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+
+            // Create all-trusting host name verifier
+            HostnameVerifier allHostsValid = new HostnameVerifier() {
+                public boolean verify(String hostname, SSLSession session) {
+                    return true;
+                }
+            };
+
+            // Install the all-trusting host verifier
+            HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (KeyManagementException e) {
+            e.printStackTrace();
+        }
+    }
 
     @Override
     protected void onResume() {
@@ -95,6 +171,11 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         if (mCodecManager != null) {
             mCodecManager.destroyCodec();
         }
+
+        muxer.stop();
+        muxer.release();
+        vencoder.stop();
+        vencoder.release();
         super.onDestroy();
     }
 
@@ -128,6 +209,37 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
         initUi();
         initPreviewer();
+
+        presentationTimeUs = new Date().getTime() * 1000;
+
+        muxer = new SrsHttpFlv(flv_url, SrsHttpFlv.OutputFormat.MUXER_OUTPUT_HTTP_FLV);
+        try {
+            muxer.start();
+        } catch (IOException e) {
+            Log.e(TAG, "start muxer failed.");
+            e.printStackTrace();
+            return;
+        }
+
+        try {
+            vencoder = MediaCodec.createEncoderByType("video/avc");
+        } catch (IOException e) {
+            Log.e(TAG, "createEncoderByType failed.");
+            e.printStackTrace();
+        }
+        vebi = new MediaCodec.BufferInfo();
+
+        MediaFormat vformat = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, 1280, 720);
+        vformat.setInteger(MediaFormat.KEY_COLOR_FORMAT, vcolor);
+        vformat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
+        vformat.setInteger(MediaFormat.KEY_BIT_RATE, 1000 * vbitrate_kbps);
+        vformat.setInteger(MediaFormat.KEY_FRAME_RATE, VFPS);
+        vformat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, VGOP);
+        vencoder.configure(vformat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+
+        vtrack = muxer.addTrack(vformat);
+
+        vencoder.start();
     }
 
     public Handler mainHandler = new Handler(Looper.getMainLooper()) {
@@ -215,25 +327,23 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                 } else if (mCodecManager != null) {
                     mCodecManager.sendDataToDecoder(videoBuffer, size);
                 }
+
                 for (int index = 0; firstGetBuffer && index < 10; index++){
                     Log.e(TAG, String.format("0x%20x", videoBuffer[index]));
                 }
                 firstGetBuffer = false;
 
-                File sdCard = Environment.getExternalStorageDirectory();
-                File dir = new File (sdCard.getAbsolutePath() + "/dji");
-                dir.mkdirs();
-                File file = new File(dir, "filename");
-
-                try {
-                    FileOutputStream f = new FileOutputStream(file, true);
-                    f.write(videoBuffer);
-                    Log.w(TAG, "write chunk finished: " + size);
-                }catch (IOException ioExp){
-
-                }
-
-
+//                File sdCard = Environment.getExternalStorageDirectory();
+//                File dir = new File (sdCard.getAbsolutePath() + "/dji");
+//                dir.mkdirs();
+//                File file = new File(dir, "filename");
+//                try {
+//                    FileOutputStream f = new FileOutputStream(file, true);
+//                    f.write(videoBuffer);
+//                    Log.w(TAG, "write chunk finished: " + size);
+//                }catch (IOException e){
+//                    e.printStackTrace();
+//                }
             }
         };
         mOnReceivedVideoCallback = new DJILBAirLink.DJIOnReceivedVideoCallback() {
@@ -262,6 +372,65 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
                         mProduct.getAirLink().getLBAirLink().setDJIOnReceivedVideoCallback(mOnReceivedVideoCallback);
                     }
                 }
+            }
+        }
+    }
+
+    // when got encoded h264 es stream.
+    private void onEncodedAnnexbFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
+        File sdCard = Environment.getExternalStorageDirectory();
+        File dir = new File (sdCard.getAbsolutePath() + "/dji");
+        dir.mkdirs();
+        File file = new File(dir, "livestream.h264");
+        byte[] arr = new byte[es.remaining()];
+        es.get(arr);
+        try {
+            FileOutputStream f = new FileOutputStream(file, true);
+            f.write(arr);
+            Log.w(TAG, "write chunk finished: " + arr.length);
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+
+        try {
+            muxer.writeSampleData(vtrack, es, bi);
+        } catch (Exception e) {
+            Log.e(TAG, "muxer write video sample failed.");
+            e.printStackTrace();
+        }
+    }
+
+    private void onGetYuvFrame(byte[] data) {
+        Log.w(TAG, String.format("got YUV image, size=%d", data.length));
+
+        // feed the vencoder with yuv frame, got the encoded 264 es stream.
+        ByteBuffer[] inBuffers = vencoder.getInputBuffers();
+        ByteBuffer[] outBuffers = vencoder.getOutputBuffers();
+
+        if (true) {
+            int inBufferIndex = vencoder.dequeueInputBuffer(-1);
+            Log.w(TAG, String.format("try to dequeue input vbuffer, ii=%d", inBufferIndex));
+            if (inBufferIndex >= 0) {
+                ByteBuffer bb = inBuffers[inBufferIndex];
+                bb.clear();
+                bb.put(data, 0, data.length);
+                long pts = new Date().getTime() * 1000 - presentationTimeUs;
+                Log.w(TAG, String.format("feed YUV to encode %dB, pts=%d", data.length, pts / 1000));
+                vencoder.queueInputBuffer(inBufferIndex, 0, data.length, pts, 0);
+            }
+        }
+
+        for (;;) {
+            int outBufferIndex = vencoder.dequeueOutputBuffer(vebi, 0);
+            //Log.i(TAG, String.format("try to dequeue output vbuffer, ii=%d, oi=%d", inBufferIndex, outBufferIndex));
+            if (outBufferIndex >= 0) {
+                ByteBuffer bb = outBuffers[outBufferIndex];
+                onEncodedAnnexbFrame(bb, vebi);
+                vencoder.releaseOutputBuffer(outBufferIndex, false);
+            }
+
+            if (outBufferIndex < 0) {
+                break;
             }
         }
     }
@@ -299,6 +468,8 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     @Override
     public void onYuvDataReceived(byte[] yuvFrame, int width, int height) {
+        Log.d(TAG, "onGetYuvFrame runs");
+        onGetYuvFrame(yuvFrame);
         //In this demo, we test the YUV data by saving it into JPG files.
         if (DJIVideoStreamDecoder.getInstance().frameIndex % 30 == 0) {
             byte[] y = new byte[width * height];

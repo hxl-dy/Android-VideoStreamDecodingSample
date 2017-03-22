@@ -17,8 +17,8 @@ android {
 
     defaultConfig {
         applicationId "com.dji.videostreamdecodingsample"
-        minSdkVersion 17
-        targetSdkVersion 22
+        minSdkVersion 21
+        targetSdkVersion 25
         versionCode 1
         versionName "1.0"
         ndk {

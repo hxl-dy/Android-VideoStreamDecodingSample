@@ -373,7 +373,7 @@ public class SrsHttpFlv {
         cache.add(frame);
 
         // always keep one audio and one videos in cache.
-        if (nb_videos > 1 && nb_audios > 1) {
+        if (nb_videos > 1 /*&& nb_audios > 1*/) {
             sendCachedFrames();
         }
     }
@@ -386,7 +386,7 @@ public class SrsHttpFlv {
             }
         });
 
-        while (nb_videos > 1 && nb_audios > 1) {
+        while (nb_videos > 1 /*&& nb_audios > 1*/) {
             SrsFlvFrame frame = cache.remove(0);
 
             if (frame.is_video()) {

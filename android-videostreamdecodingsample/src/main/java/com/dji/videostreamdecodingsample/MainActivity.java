@@ -378,19 +378,19 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
 
     // when got encoded h264 es stream.
     private void onEncodedAnnexbFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
-        File sdCard = Environment.getExternalStorageDirectory();
-        File dir = new File (sdCard.getAbsolutePath() + "/dji");
-        dir.mkdirs();
-        File file = new File(dir, "livestream.h264");
-        byte[] arr = new byte[es.remaining()];
-        es.get(arr);
-        try {
-            FileOutputStream f = new FileOutputStream(file, true);
-            f.write(arr);
-            Log.w(TAG, "write chunk finished: " + arr.length);
-        }catch (IOException e){
-            e.printStackTrace();
-        }
+//        File sdCard = Environment.getExternalStorageDirectory();
+//        File dir = new File (sdCard.getAbsolutePath() + "/dji");
+//        dir.mkdirs();
+//        File file = new File(dir, "livestream.h264");
+//        byte[] arr = new byte[es.remaining()];
+//        es.get(arr);
+//        try {
+//            FileOutputStream f = new FileOutputStream(file, true);
+//            f.write(arr);
+//            Log.w(TAG, "write chunk finished: " + arr.length);
+//        }catch (IOException e){
+//            e.printStackTrace();
+//        }
 
         try {
             muxer.writeSampleData(vtrack, es, bi);

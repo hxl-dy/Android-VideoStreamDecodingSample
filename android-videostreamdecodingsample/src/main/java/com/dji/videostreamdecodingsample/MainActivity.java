@@ -470,50 +470,50 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     public void onYuvDataReceived(byte[] yuvFrame, int width, int height) {
         Log.d(TAG, "onGetYuvFrame runs");
         onGetYuvFrame(yuvFrame);
-        //In this demo, we test the YUV data by saving it into JPG files.
-        if (DJIVideoStreamDecoder.getInstance().frameIndex % 30 == 0) {
-            byte[] y = new byte[width * height];
-            byte[] u = new byte[width * height / 4];
-            byte[] v = new byte[width * height / 4];
-            byte[] nu = new byte[width * height / 4]; //
-            byte[] nv = new byte[width * height / 4];
-            System.arraycopy(yuvFrame, 0, y, 0, y.length);
-            for (int i = 0; i < u.length; i++) {
-                v[i] = yuvFrame[y.length + 2 * i];
-                u[i] = yuvFrame[y.length + 2 * i + 1];
-            }
-            int uvWidth = width / 2;
-            int uvHeight = height / 2;
-            for (int j = 0; j < uvWidth / 2; j++) {
-                for (int i = 0; i < uvHeight / 2; i++) {
-                    byte uSample1 = u[i * uvWidth + j];
-                    byte uSample2 = u[i * uvWidth + j + uvWidth / 2];
-                    byte vSample1 = v[(i + uvHeight / 2) * uvWidth + j];
-                    byte vSample2 = v[(i + uvHeight / 2) * uvWidth + j + uvWidth / 2];
-                    nu[2 * (i * uvWidth + j)] = uSample1;
-                    nu[2 * (i * uvWidth + j) + 1] = uSample1;
-                    nu[2 * (i * uvWidth + j) + uvWidth] = uSample2;
-                    nu[2 * (i * uvWidth + j) + 1 + uvWidth] = uSample2;
-                    nv[2 * (i * uvWidth + j)] = vSample1;
-                    nv[2 * (i * uvWidth + j) + 1] = vSample1;
-                    nv[2 * (i * uvWidth + j) + uvWidth] = vSample2;
-                    nv[2 * (i * uvWidth + j) + 1 + uvWidth] = vSample2;
-                }
-            }
-            //nv21test
-            byte[] bytes = new byte[yuvFrame.length];
-            System.arraycopy(y, 0, bytes, 0, y.length);
-            for (int i = 0; i < u.length; i++) {
-                bytes[y.length + (i * 2)] = nv[i];
-                bytes[y.length + (i * 2) + 1] = nu[i];
-            }
-            Log.d(TAG,
-                    "onYuvDataReceived: frame index: "
-                            + DJIVideoStreamDecoder.getInstance().frameIndex
-                            + ",array length: "
-                            + bytes.length);
-            screenShot(bytes, Environment.getExternalStorageDirectory() + "/DJI_ScreenShot");
-        }
+//        //In this demo, we test the YUV data by saving it into JPG files.
+//        if (DJIVideoStreamDecoder.getInstance().frameIndex % 30 == 0) {
+//            byte[] y = new byte[width * height];
+//            byte[] u = new byte[width * height / 4];
+//            byte[] v = new byte[width * height / 4];
+//            byte[] nu = new byte[width * height / 4]; //
+//            byte[] nv = new byte[width * height / 4];
+//            System.arraycopy(yuvFrame, 0, y, 0, y.length);
+//            for (int i = 0; i < u.length; i++) {
+//                v[i] = yuvFrame[y.length + 2 * i];
+//                u[i] = yuvFrame[y.length + 2 * i + 1];
+//            }
+//            int uvWidth = width / 2;
+//            int uvHeight = height / 2;
+//            for (int j = 0; j < uvWidth / 2; j++) {
+//                for (int i = 0; i < uvHeight / 2; i++) {
+//                    byte uSample1 = u[i * uvWidth + j];
+//                    byte uSample2 = u[i * uvWidth + j + uvWidth / 2];
+//                    byte vSample1 = v[(i + uvHeight / 2) * uvWidth + j];
+//                    byte vSample2 = v[(i + uvHeight / 2) * uvWidth + j + uvWidth / 2];
+//                    nu[2 * (i * uvWidth + j)] = uSample1;
+//                    nu[2 * (i * uvWidth + j) + 1] = uSample1;
+//                    nu[2 * (i * uvWidth + j) + uvWidth] = uSample2;
+//                    nu[2 * (i * uvWidth + j) + 1 + uvWidth] = uSample2;
+//                    nv[2 * (i * uvWidth + j)] = vSample1;
+//                    nv[2 * (i * uvWidth + j) + 1] = vSample1;
+//                    nv[2 * (i * uvWidth + j) + uvWidth] = vSample2;
+//                    nv[2 * (i * uvWidth + j) + 1 + uvWidth] = vSample2;
+//                }
+//            }
+//            //nv21test
+//            byte[] bytes = new byte[yuvFrame.length];
+//            System.arraycopy(y, 0, bytes, 0, y.length);
+//            for (int i = 0; i < u.length; i++) {
+//                bytes[y.length + (i * 2)] = nv[i];
+//                bytes[y.length + (i * 2) + 1] = nu[i];
+//            }
+//            Log.d(TAG,
+//                    "onYuvDataReceived: frame index: "
+//                            + DJIVideoStreamDecoder.getInstance().frameIndex
+//                            + ",array length: "
+//                            + bytes.length);
+//            screenShot(bytes, Environment.getExternalStorageDirectory() + "/DJI_ScreenShot");
+//        }
     }
 
     /**

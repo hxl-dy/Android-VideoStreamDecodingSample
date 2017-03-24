@@ -97,6 +97,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     private int vcolor = MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible;
     private MediaCodec vencoder;
     private MediaCodec.BufferInfo vebi;
+    public static final String VIDEO_ENCODING_FORMAT = MediaFormat.MIMETYPE_VIDEO_AVC;
 
     static {
         disableSslVerification();
@@ -223,14 +224,14 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         }
 
         try {
-            vencoder = MediaCodec.createEncoderByType("video/avc");
+            vencoder = MediaCodec.createEncoderByType(VIDEO_ENCODING_FORMAT);
         } catch (IOException e) {
             Log.e(TAG, "createEncoderByType failed.");
             e.printStackTrace();
         }
         vebi = new MediaCodec.BufferInfo();
 
-        MediaFormat vformat = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, 1280, 720);
+        MediaFormat vformat = MediaFormat.createVideoFormat(VIDEO_ENCODING_FORMAT, 1280, 720);
         vformat.setInteger(MediaFormat.KEY_COLOR_FORMAT, vcolor);
         vformat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
         vformat.setInteger(MediaFormat.KEY_BIT_RATE, 1000 * vbitrate_kbps);

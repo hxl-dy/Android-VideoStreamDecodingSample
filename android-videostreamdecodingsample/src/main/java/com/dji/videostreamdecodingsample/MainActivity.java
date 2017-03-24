@@ -83,6 +83,7 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     protected DJILBAirLink.DJIOnReceivedVideoCallback mOnReceivedVideoCallback = null;
 
     private static boolean firstGetBuffer = true;
+    private static int yuvFrameCount = 0;
     private String flv_url = "http://192.168.5.4:8936/android/dji.flv";
     // the bitrate in kbps.
     private int vbitrate_kbps = 1200;

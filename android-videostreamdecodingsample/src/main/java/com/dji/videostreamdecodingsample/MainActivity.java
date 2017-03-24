@@ -470,6 +470,9 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
     public void onYuvDataReceived(byte[] yuvFrame, int width, int height) {
         Log.d(TAG, "onGetYuvFrame runs");
         onGetYuvFrame(yuvFrame);
+        if(yuvFrameCount++ < 10) {
+            saveByteArray(yuvFrame, "dji", "yuvFrame" + yuvFrameCount);
+        }
 //        //In this demo, we test the YUV data by saving it into JPG files.
 //        if (DJIVideoStreamDecoder.getInstance().frameIndex % 30 == 0) {
 //            byte[] y = new byte[width * height];
@@ -593,4 +596,17 @@ public class MainActivity extends Activity implements DJIVideoStreamDecoder.IYuv
         savePath.setText(stringBuilder.toString());
     }
 
+    private void saveByteArray(byte[] data, String folder, String fileName){
+        File sdCard = Environment.getExternalStorageDirectory();
+        File dir = new File (sdCard.getAbsolutePath() + "/" + folder);
+        dir.mkdirs();
+        File file = new File(dir, fileName);
+        try {
+            FileOutputStream f = new FileOutputStream(file, true);
+            f.write(data);
+            Log.d(TAG, "write chunk finished: " + data.length);
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+    }
 }

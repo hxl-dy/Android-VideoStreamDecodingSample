@@ -38,3 +38,4 @@ ant.properties
 #backup files
 *.bak
 .gradle
+build
